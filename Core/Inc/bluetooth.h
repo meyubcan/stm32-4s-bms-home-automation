@@ -1,3 +1,4 @@
+/* M. Eyub Can, TECH-OHM (https://tech-ohm.com) */
 #ifndef BLUETOOTH_H
 #define BLUETOOTH_H
 

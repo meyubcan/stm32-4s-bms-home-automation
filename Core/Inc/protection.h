@@ -1,6 +1,7 @@
 /**
  ******************************************************************************
  * @file    protection.h
+ * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
  * @brief   Batarya sicaklik korumasi:
  *            >35C  -> fan (PD14)
  *            >55C  -> buzzer (PD15) + user led 1&2 (PD5/PD6) yanip soner

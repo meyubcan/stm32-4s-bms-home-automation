@@ -1,6 +1,7 @@
 /**
  ******************************************************************************
  * @file    adc_read.h
+ * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
  * @brief   ADC + DMA okuma, 10 ornek digital filtre (ortalama),
  *          VREFINT kalibrasyonu ile gercek VDDA, pil/sicaklik/akim hesabi.
  *          STM32F407VG - 4S pil + 2x LM35DZ + 1x ACS712-20A

@@ -1,6 +1,7 @@
 /**
  ******************************************************************************
  * @file    protection.c
+ * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
  * @brief   Batarya sicaklik koruma mantigi (fan / buzzer / led).
  ******************************************************************************
  */

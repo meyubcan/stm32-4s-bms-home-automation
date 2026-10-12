@@ -1,3 +1,4 @@
+/* M. Eyub Can, TECH-OHM (https://tech-ohm.com) */
 #include "bluetooth.h"
 #include "adc_read.h"
 #include "protection.h"

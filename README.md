@@ -1,5 +1,7 @@
 # STM32F407 ile 4S batarya yönetimi ve Bluetooth kontrollü ev otomasyonu
 
+> [TECH-OHM](https://tech-ohm.com) açık kaynak projesi
+
 4 seri Li-ion batarya paketini izleyen, hücreleri dengeleyen, sıcaklığa göre fan ve alarmı yöneten ve bütün bunları Bluetooth üzerinden telefona bildiren yazılım. Aynı kart bataryadan beslenen küçük bir ev sisteminin çıkışlarını da (aydınlatma, fan, USB priz, kapı servoları) telefondan gelen komutlarla açıp kapatıyor.
 
 ## Blok diyagram
@@ -147,4 +149,10 @@ MIT. `Drivers` klasöründeki STM32 HAL ve CMSIS dosyaları kendi lisanslarıyla
 
 ## Yazar
 
-Gömülü Sistem Mühendisi M. Eyüb Can, [TECH-OHM](https://tech-ohm.com)
+Gömülü Sistem Mühendisi M. Eyüb Can, [TECH-OHM](https://tech-ohm.com) kurucusu
+
+## TECH-OHM
+
+[TECH-OHM](https://tech-ohm.com) elektronik kart ve gömülü yazılım tasarlayan bir mühendislik firması. Fikirden seri üretime kadar tasarım işi alıyor, TECH-OHM Akademi'de 12 aylık gömülü sistem eğitimi ve şirketlere özel danışmanlık veriyor.
+
+Web: [tech-ohm.com](https://tech-ohm.com) · E-posta: info@tech-ohm.com

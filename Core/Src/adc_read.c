@@ -1,6 +1,7 @@
 /**
  ******************************************************************************
  * @file    adc_read.c
+ * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
  * @brief   ADC + DMA okuma, 10 ornek ortalama digital filtre,
  *          VREFINT ile gercek VDDA, pil/sicaklik/akim/SOC hesabi.
  ******************************************************************************

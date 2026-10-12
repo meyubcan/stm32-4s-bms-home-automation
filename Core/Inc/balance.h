@@ -1,6 +1,7 @@
 /**
  ******************************************************************************
  * @file    balance.h
+ * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
  * @brief   Pasif hucre dengeleme.
  *          Ortalama hucre gerilimi bulunur; ortalamanin BALANCE_THRESHOLD
  *          uzerindeki hucrelerin balans FET'i %50 duty ile acilir (yan-son).
