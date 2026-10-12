@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart LR
-    subgraph Ölçüm
+    subgraph SENS[Ölçüm]
         CELL[4 hücre gerilimi, bölücülerle]
         NTC[2 adet LM35]
         ACS[ACS712-20A akım sensörü]
