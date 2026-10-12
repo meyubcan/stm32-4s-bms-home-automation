@@ -1,255 +1,271 @@
-# STM32F407 ile 4S batarya yönetimi ve Bluetooth kontrollü ev otomasyonu
+# 4S smart BMS and home automation controller
 
-> [TECH-OHM](https://tech-ohm.com) açık kaynak projesi
+STM32F407 · 4S Li-ion · passive balancing · Bluetooth app · custom PCB
 
-![Kart ve telefon uygulaması](docs/img/kart-ve-uygulama.jpg)
+![MCU](https://img.shields.io/badge/MCU-STM32F407VG-03234B?logo=stmicroelectronics&logoColor=white) ![IDE](https://img.shields.io/badge/IDE-STM32CubeIDE-2ea44f) ![License](https://img.shields.io/badge/license-MIT-blue) [![TECH-OHM](https://img.shields.io/badge/by-TECH--OHM-FFD400)](https://tech-ohm.com)
 
-Bataryadan beslenen küçük bir ev sisteminin hem bataryasını hem de çıkışlarını yöneten kart ve yazılımı. Kartı da yazılımı da ben tasarladım.
+**English** | [Türkçe](README.tr.md) · An open-source project by [TECH-OHM](https://tech-ohm.com)
 
-Batarya tarafında 4 seri Li-ion paketin hücre gerilimlerini, akımını ve sıcaklığını ölçüyor, hücreleri dengeliyor, ısınınca fanı ve alarmı çalıştırıyor. Ev tarafında aydınlatmayı, fanları, telefon şarj çıkışını ve dört kapı servosunu sürüyor. Hepsi Bluetooth üzerinden bir telefon uygulamasıyla izlenip kontrol ediliyor.
+![Board and phone app](docs/img/kart-ve-uygulama.jpg)
 
-## Sistem
+A custom board and its firmware for a small battery-powered home system. It manages the battery and switches the loads. I designed both the hardware and the software.
+
+On the battery side it measures cell voltages, current and temperature on a 4S Li-ion pack, balances the cells, and runs a fan and an alarm when the pack gets hot. On the home side it switches lighting, fans, a phone charging port and four door servos. Everything is monitored and controlled from a phone app over Bluetooth.
+
+## Features
+
+- Per-cell voltage measurement on a 4S pack, with pack voltage and state of charge
+- Current, power, consumed energy (Wh) and remaining-time estimate
+- Passive cell balancing, about 200 mA per cell
+- Thermal protection: fan at 35 °C, buzzer and flasher at 55 °C
+- Seven opto-isolated relay outputs and four servo channels
+- Live telemetry and control from an Android app over Bluetooth
+
+## System overview
 
 ```mermaid
 flowchart LR
-    BAT[4S Li-ion paket, 16.8 V] --> PWR[Güç katı: 12 V, 5 V, 3.3 V]
-    BAT --> VDIV[Gerilim bölücüler ve opamp tamponları]
-    BAT --- BALR[Dengeleme dirençleri, hücre başına 200 mA]
+    BAT[4S Li-ion pack, 16.8 V] --> PWR[Power stage: 12 V, 5 V, 3.3 V]
+    BAT --> VDIV[Voltage dividers and op-amp buffers]
+    BAT --- BALR[Balancing resistors, 200 mA per cell]
     VDIV --> MCU[STM32F407VGT6]
-    ISEN[Akım sensörü] --> MCU
-    TSEN[Sıcaklık sensörleri: batarya ve ev] --> MCU
-    MCU --> BALSW[4 dengeleme anahtarı]
+    ISEN[Current sensor] --> MCU
+    TSEN[Temperature sensors: battery and room] --> MCU
+    MCU --> BALSW[4 balancing switches]
     BALSW --> BALR
-    MCU --> PROT[Batarya fanı ve buzzer-flaşör röleleri]
-    MCU --> HOME[5 ev rölesi]
-    HOME --> LED[2 adet 12 V aydınlatma]
-    HOME --> FAN[2 adet 5 V fan]
-    HOME --> USB[USB Type-C 5 V, telefon şarjı]
-    MCU --> CHG[Batarya şarj çıkışı]
-    MCU -- "50 Hz PWM" --> SRV[4 servo, kapılar]
+    MCU --> PROT[Battery fan and buzzer-flasher relays]
+    MCU --> HOME[5 home relays]
+    HOME --> LED[2 x 12 V lighting]
+    HOME --> FAN[2 x 5 V fan]
+    HOME --> USB[USB Type-C 5 V, phone charging]
+    MCU --> CHG[Battery charge output]
+    MCU -- "50 Hz PWM" --> SRV[4 servos, doors]
     MCU <--> BT[HC-06 Bluetooth]
-    BT <-.-> APP[Telefon uygulaması]
+    BT <-.-> APP[Phone app]
 ```
 
-## Telefon uygulaması
+## Phone app
 
-Uygulamanın iki ekranı var: batarya ve ev otomasyonu. Kart yarım saniyede bir bütün ölçümleri gönderiyor, uygulamadaki her kutucuk karta iki karakterlik bir komut yolluyor.
+The app has two screens: battery and home automation. Two things happen over the Bluetooth link.
 
 ```mermaid
-sequenceDiagram
-    participant APP as Telefon uygulaması
-    participant BT as HC-06
-    participant MCU as STM32F407
-    participant OUT as Röleler ve servolar
-    loop her 500 ms
-        MCU->>BT: telemetri satırı
-        BT-->>APP: şarj, gerilimler, sıcaklık, akım, güç, tüketim
+flowchart LR
+    subgraph CTRL[Control: app to board]
+        direction LR
+        A1[Tap a switch in the app] --> A2[2-character command] --> A3[STM32 parses it] --> A4[Relay or servo switches]
     end
-    APP->>BT: e1, telefon şarjını aç
-    BT->>MCU: UART kesmesi
-    MCU->>OUT: USB Type-C rölesi çeker
-    APP->>BT: g1, birinci kapıyı aç
-    BT->>MCU: UART kesmesi
-    MCU->>OUT: servo açık konuma döner
+    subgraph MON[Monitoring: board to app]
+        direction LR
+        B1[STM32 measures] --> B2[One telemetry line every 500 ms] --> B3[App updates the screen]
+    end
 ```
 
-**Uygulamadan kontrol edilenler**
+### Commands
 
-| Uygulamadaki kutucuk | Komut | Kartta olan |
+A command is one letter followed by `1` (on) or `0` (off).
+
+| Switch in the app | Command | On the board |
 |---|---|---|
-| Ev LED 1 | `a1` / `a0` | 12 V aydınlatma rölesi |
-| Ev LED 2 | `b1` / `b0` | 12 V aydınlatma rölesi |
-| Ev fan 1 | `c1` / `c0` | 5 V fan rölesi |
-| Ev fan 2 | `d1` / `d0` | 5 V fan rölesi |
-| Ev telefon şarj | `e1` / `e0` | USB Type-C 5 V rölesi |
-| Batarya şarj | `f1` / `f0` | şarj çıkışı |
-| Kapı 1 ile 4 | `g`, `h`, `i`, `j` + `1` / `0` | servo açık ya da kapalı konuma döner |
-| Güç tüketimini sıfırla | `z` | enerji sayacı sıfırlanır |
+| Home LED 1 | `a1` / `a0` | 12 V lighting relay |
+| Home LED 2 | `b1` / `b0` | 12 V lighting relay |
+| Home fan 1 | `c1` / `c0` | 5 V fan relay |
+| Home fan 2 | `d1` / `d0` | 5 V fan relay |
+| Phone charging | `e1` / `e0` | USB Type-C 5 V relay |
+| Battery charging | `f1` / `f0` | charge output |
+| Door 1 to 4 | `g`, `h`, `i`, `j` + `1` / `0` | servo moves to open or closed |
+| Reset consumption | `z` | energy counter is cleared |
 
-**Uygulamada gösterilenler**
+### Telemetry
 
-Şarj yüzdesi, paket gerilimi, dört hücrenin gerilimi, batarya sıcaklığı, ev sıcaklığı, akım, anlık güç, toplam tüketim (Wh), tahmini kalan süre, hangi hücrenin dengelendiği ve sıcaklık alarmı.
+One comma-separated line every half second:
 
-Telemetri virgülle ayrılmış tek satır olarak gidiyor:
-
-```
-şarj%, paket V, hücre1, hücre2, hücre3, hücre4, sıcaklık1, sıcaklık2, akım A, güç W, enerji Wh, kalan dakika, denge1, denge2, denge3, denge4, alarm
-```
+| # | Field | Example |
+|---|---|---|
+| 1 | State of charge, % | 89 |
+| 2 | Pack voltage, V | 16.4 |
+| 3 to 6 | Cell 1 to 4 voltage, V | 4.1 |
+| 7, 8 | Battery and room temperature, °C | 28, 29 |
+| 9 | Current, A | 0.01 |
+| 10 | Power, W | 0.2 |
+| 11 | Consumed energy, Wh | 0.1 |
+| 12 | Remaining time, minutes (-1 if current is too low to estimate) | -1 |
+| 13 to 16 | Balancing active on cell 1 to 4 | 0 |
+| 17 | Temperature alarm | 0 |
 
 ```
 89,16.4,4.1,4.1,4.1,4.1,28,29,0.01,0.2,0.1,-1,0,0,0,0,0
 ```
 
-Kalan dakika -1 ise akım çok düşük, süre hesaplanamıyor demek.
+## Hardware
 
-## Donanım
-
-| Üst yüz | Alt yüz |
+| Top | Bottom |
 |---|---|
-| ![Kart üst yüz](docs/img/kart-ust.jpg) | ![Kart alt yüz](docs/img/kart-alt.jpg) |
+| ![Board top](docs/img/kart-ust.jpg) | ![Board bottom](docs/img/kart-alt.jpg) |
 
-![Dizilmiş kart](docs/img/kart-foto.jpg)
+![Assembled board](docs/img/kart-foto.jpg)
 
-Şemanın tamamı: [docs/bms-sema.pdf](docs/bms-sema.pdf)
+Full schematic: [docs/bms-sema.pdf](docs/bms-sema.pdf)
 
-| Sayfa | İçerik | Önizleme |
+| Sheet | Content | Preview |
 |---|---|---|
-| 2 | Mikrodenetleyici, kristal, programlama başlığı, butonlar | [aç](docs/img/sema-2-mikrodenetleyici.png) |
-| 3 | Hücre gerilimi okuma | [aç](docs/img/sema-3-gerilim-okuma.png) |
-| 4 | Pasif dengeleme | [aç](docs/img/sema-4-pasif-dengeleme.png) |
-| 5 | Akım okuma, sıcaklık girişleri, Bluetooth | [aç](docs/img/sema-5-akim-sicaklik-bluetooth.png) |
-| 6 | Ev kontrolü: aydınlatma, fan ve Type-C röleleri | [aç](docs/img/sema-6-ev-kontrolu.png) |
-| 7 | Batarya fanı ve buzzer-flaşör röleleri | [aç](docs/img/sema-7-batarya-fan-buzzer.png) |
+| 2 | Microcontroller, crystal, programming header, buttons | [open](docs/img/sema-2-mikrodenetleyici.png) |
+| 3 | Cell voltage sensing | [open](docs/img/sema-3-gerilim-okuma.png) |
+| 4 | Passive balancing | [open](docs/img/sema-4-pasif-dengeleme.png) |
+| 5 | Current sensing, temperature inputs, Bluetooth | [open](docs/img/sema-5-akim-sicaklik-bluetooth.png) |
+| 6 | Home control: lighting, fan and Type-C relays | [open](docs/img/sema-6-ev-kontrolu.png) |
+| 7 | Battery fan and buzzer-flasher relays | [open](docs/img/sema-7-batarya-fan-buzzer.png) |
 
-### Güç dağıtımı
+The schematic sheets are labeled in Turkish.
 
-```mermaid
-flowchart LR
-    BAT[4S paket, 12 ile 16.8 V] --> R16[16.8 V hattı]
-    R16 --> L16[Batarya fanı, buzzer-flaşör]
-    R16 --> R12[12 V hattı]
-    R16 --> R5[5 V hattı]
-    R12 --> L12[Ev aydınlatması]
-    R5 --> L5[Ev fanları, servolar, USB Type-C, Bluetooth]
-    R5 --> R3[3.3 V hattı]
-    R3 --> L3[İşlemci ve opamplar]
-```
-
-### Hücre gerilimi okuma
-
-Dört hücre seri olduğu için üst hücrelerin toprağa göre gerilimi işlemcinin ölçebileceğinden çok yüksek. Her düğüm ayrı bir bölücüyle 3 V civarına indiriliyor, ardından MCP6004 opamp ile tamponlanıp 1 kΩ ve 100 nF'lık filtreden geçerek ADC'ye gidiyor. Tampon olmadan bölücünün yüksek çıkış direnci ADC örneklemesini bozar.
+### Power distribution
 
 ```mermaid
 flowchart LR
-    N[Hücre düğümü] --> D[Direnç bölücü] --> O[MCP6004 tampon] --> F[1 kΩ + 100 nF filtre] --> A[ADC girişi]
+    BAT[4S pack, 12 to 16.8 V] --> R16[16.8 V rail]
+    R16 --> L16[Battery fan, buzzer-flasher]
+    R16 --> R12[12 V rail]
+    R16 --> R5[5 V rail]
+    R12 --> L12[Home lighting]
+    R5 --> L5[Home fans, servos, USB Type-C, Bluetooth]
+    R5 --> R3[3.3 V rail]
+    R3 --> L3[MCU and op-amps]
 ```
 
-| Düğüm | En yüksek gerilim | Bölücü | Oran |
+### Cell voltage sensing
+
+The cells are in series, so the upper nodes sit far above what the MCU can measure. Each node goes through its own divider down to about 3 V, then an MCP6004 op-amp buffer, then a 1 kΩ and 100 nF filter into the ADC. Without the buffer, the divider's high output impedance disturbs ADC sampling.
+
+```mermaid
+flowchart LR
+    N[Cell node] --> D[Resistor divider] --> O[MCP6004 buffer] --> F[1 kΩ + 100 nF filter] --> A[ADC input]
+```
+
+| Node | Max voltage | Divider | Ratio |
 |---|---|---|---|
 | 1 | 4.2 V | 4.02 kΩ / 10 kΩ | 1.40 |
 | 2 | 8.4 V | 18 kΩ / 10 kΩ | 2.80 |
 | 3 | 12.6 V | 32.4 kΩ / 10 kΩ | 4.24 |
 | 4 | 16.8 V | 46.4 kΩ / 10 kΩ | 5.64 |
 
-Yazılımdaki `DIV_BAT` dizisinde üçüncü ve dördüncü oran 4.26 ve 5.67. Bunlar direnç toleransı yüzünden multimetreyle ölçülüp düzeltilmiş değerler. Üst düğümlerde küçük bir oran hatası hücre geriliminde büyük hata yaptığı için bu kalibrasyon şart.
+In the firmware, the third and fourth entries of `DIV_BAT` are 4.26 and 5.67. Those were measured with a multimeter and corrected for resistor tolerance. A small ratio error on the upper nodes turns into a large error in cell voltage, so this calibration is needed.
 
-### Pasif dengeleme
+### Passive balancing
 
-Anahtarlamalı direnç yöntemi. Her hücrenin üzerinde bir güç direnci ve onu devreye alan bir transistör var. İşlemci çıkışı optokuplörle yalıtılmış, çünkü üst hücrelerin anahtarı işlemcinin toprağına göre yüksek gerilimde çalışıyor. Dengeleme akımı yaklaşık 200 mA.
-
-```mermaid
-flowchart LR
-    P[İşlemci pini] --> OK[PC817 optokuplör] --> T[FZT851 transistör] --> R[22 Ω güç direnci, hücreye paralel]
-    P --> LED[Gösterge LED'i]
-```
-
-### Röle çıkışları
-
-Yedi röle de aynı devreyle sürülüyor. İşlemci pini optokuplörü ve gösterge LED'ini sürüyor, optokuplör transistörü, transistör röle bobinini çekiyor. Bobine paralel diyot, röle bırakırken oluşan gerilimi söndürüyor.
+Switched-resistor method. Each cell has a power resistor across it and a transistor that connects it. The MCU output is isolated with an optocoupler because the switches of the upper cells work far above the MCU ground. Balancing current is about 200 mA.
 
 ```mermaid
 flowchart LR
-    P[İşlemci pini] --> OK[PC817 optokuplör ve LED] --> T[BCX54 transistör] --> K[ALDP112W röle, 1N4002 ile] --> Y[Yük]
+    P[MCU pin] --> OK[PC817 optocoupler] --> T[FZT851 transistor] --> R[22 Ω power resistor across the cell]
+    P --> LED[Indicator LED]
 ```
 
-### Diğerleri
+### Relay outputs
 
-- **Akım:** hall etkili sensörün çıkışı tamponlanıp filtreden geçerek ADC'ye gidiyor.
-- **Sıcaklık:** kartta dört sensör girişi var, her birinde 1 kΩ ve 100 nF filtre. Yazılım ikisini kullanıyor: batarya ve ev.
-- **Bluetooth:** HC-06 modülü 5 V'tan besleniyor, 9600 baud.
-- **İşlemci:** STM32F407VGT6, 8 MHz kristal, ST-LINK başlığı, reset ve kullanıcı butonu, iki kullanıcı LED'i.
+All seven relays use the same circuit. The MCU pin drives an optocoupler and an indicator LED, the optocoupler drives a transistor, and the transistor pulls the relay coil. A diode across the coil absorbs the kickback when the relay releases.
 
-### Şema ile yazılım arasındaki farklar
+```mermaid
+flowchart LR
+    P[MCU pin] --> OK[PC817 optocoupler and LED] --> T[BCX54 transistor] --> K[ALDP112W relay with 1N4002] --> Y[Load]
+```
 
-Depodaki şema kartın ilk çizimi. Güç katının olduğu birinci sayfa eksik. Mikrodenetleyici sayfasında ev çıkışları, servolar, Bluetooth ve akım girişi görünmüyor, sıcaklık girişleri de farklı pinlerde. Akım sensörü şemada LEM CASR 25-NP olarak çizili, yazılım ise 100 mV/A veren bir sensöre (ACS712-20A) göre ayarlı.
+### Other blocks
 
-Güncel pin atamaları aşağıdaki tabloda ve `.ioc` dosyasında.
+- **Current:** the output of a hall-effect sensor is buffered and filtered before the ADC.
+- **Temperature:** the board has four sensor inputs, each with a 1 kΩ and 100 nF filter. The firmware uses two: battery and room.
+- **Bluetooth:** HC-06 module on 5 V, 9600 baud.
+- **MCU:** STM32F407VGT6, 8 MHz crystal, ST-LINK header, reset and user buttons, two user LEDs.
 
-## Yazılım
+### Differences between the schematic and the firmware
 
-| Dosya | İçerik |
+The schematic in this repository is the first drawing of the board. Sheet 1, the power stage, is missing. The microcontroller sheet does not show the home outputs, servos, Bluetooth or the current input, and the temperature inputs are on different pins. The current sensor is drawn as a LEM CASR 25-NP, while the firmware is set up for a 100 mV/A sensor (ACS712-20A).
+
+The pin table below and the `.ioc` file are the current reference.
+
+## Firmware
+
+| File | Content |
 |---|---|
-| `adc_read.c` | ADC okuma, filtre, gerilim, sıcaklık, akım, şarj yüzdesi ve enerji hesabı |
-| `balance.c` | pasif hücre dengeleme |
-| `protection.c` | sıcaklığa bağlı fan ve alarm |
-| `bluetooth.c` | telemetri gönderme ve komut alma |
-| `main.c` | çıkış tabloları, başlatma ve ana döngü |
+| `adc_read.c` | ADC sampling, filtering, voltage, temperature, current, state of charge and energy |
+| `balance.c` | passive cell balancing |
+| `protection.c` | temperature-driven fan and alarm |
+| `bluetooth.c` | telemetry and command handling |
+| `main.c` | output tables, startup and main loop |
 
-### Pinler
+### Pins
 
-| Pin | Görev |
+| Pin | Function |
 |---|---|
-| PA2, PA3, PA4, PA5 | hücre düğüm gerilimleri 1 ile 4 |
-| PA6, PA7 | sıcaklık sensörleri: batarya ve ev |
-| PC0 | akım sensörü |
-| PB9, PB8, PB7, PB6 | dengeleme çıkışları, hücre 1 ile 4 |
-| PB0 | batarya şarj çıkışı |
-| PD12, PD11 | ev LED 1 ve 2 |
-| PD10, PD8 | ev fan 1 ve 2 |
+| PA2, PA3, PA4, PA5 | cell node voltages 1 to 4 |
+| PA6, PA7 | temperature sensors: battery and room |
+| PC0 | current sensor |
+| PB9, PB8, PB7, PB6 | balancing outputs, cell 1 to 4 |
+| PB0 | battery charge output |
+| PD12, PD11 | home LED 1 and 2 |
+| PD10, PD8 | home fan 1 and 2 |
 | PD9 | USB Type-C 5 V |
-| PD14 | batarya fanı |
-| PD15 | buzzer-flaşör |
-| PD5, PD6 | kullanıcı LED'leri |
-| PE9, PE11, PE13, PE14 | servo 1 ile 4, TIM1 CH1 ile CH4 |
+| PD14 | battery fan |
+| PD15 | buzzer-flasher |
+| PD5, PD6 | user LEDs |
+| PE9, PE11, PE13, PE14 | servo 1 to 4, TIM1 CH1 to CH4 |
 | PA9, PA10 | USART1, HC-06 |
 
-### Ölçüm
+### Measurement
 
-ADC sekiz kanalı DMA ile sürekli tarıyor: dört hücre düğümü, iki sıcaklık, akım ve işlemcinin dahili referansı. Her kanal için 10 örnek toplanıp ortalaması alınıyor.
+The ADC scans eight channels continuously with DMA: four cell nodes, two temperatures, current and the internal reference. Ten samples per channel are averaged.
 
-**Besleme gerilimi düzeltmesi.** 3.3 V regülatörün çıkışı karttan karta ve yüke göre değişir. Hesapta sabit 3.3 kullanmak yerine dahili referans (VREFINT) ölçülüyor ve fabrika kalibrasyon değeriyle karşılaştırılarak gerçek besleme gerilimi bulunuyor. Bütün gerilimler buna göre hesaplanıyor.
+**Supply correction.** The 3.3 V regulator output varies from board to board and with load. Instead of assuming 3.3 V, the firmware measures the internal reference (VREFINT) and compares it with the factory calibration value to find the real supply voltage. Every voltage is computed from that.
 
-**Hücre gerilimleri.** Hücre gerilimi komşu düğümlerin farkından bulunuyor.
+**Cell voltages.** A cell voltage is the difference between two neighboring nodes.
 
-**Akım.** Sensörün sıfır akımdaki çıkışı açılışta, yük yokken ölçülüp kaydediliyor. Akım buna göre hesaplanıp yumuşatılıyor.
+**Current.** The sensor's zero-current output is measured and stored at startup with no load. Current is computed against that and smoothed.
 
-**Şarj yüzdesi.** Ortalama hücre gerilimi, 4.20 V için %100 ve 3.00 V için %0 olan bir tablodan ara değer hesabıyla okunuyor. Bu yöntem batarya yük altındayken düşük gösterir, kaba bir göstergedir.
+**State of charge.** The average cell voltage is looked up in a table that runs from 100% at 4.20 V to 0% at 3.00 V, with interpolation. This reads low under load, so treat it as a rough gauge.
 
-**Kalan süre.** Kapasite (25 Ah) ile şarj yüzdesinin çarpımı, o an çekilen akıma bölünüyor.
+**Remaining time.** Capacity (25 Ah) times state of charge, divided by the present current.
 
-### Dengeleme
+### Balancing
 
-Dört hücrenin ortalaması alınıyor. Ortalamadan `BALANCE_THRESHOLD` kadar yüksek olan hücrenin dengeleme çıkışı %50 oranla (1 saniye açık, 1 saniye kapalı) sürülüyor. Dengeleme direnci o hücreyi boşaltarak diğerlerine yaklaştırıyor.
+The four cell voltages are averaged. Any cell that sits more than `BALANCE_THRESHOLD` above the average gets its balancing output driven at 50% duty (1 second on, 1 second off). The resistor discharges that cell toward the others.
 
-Eşik denemeler için 0.5 V bırakıldı. Gerçek kullanımda 0.03 ile 0.05 V arasına çekilmeli.
+The threshold is left at 0.5 V for testing. For real use it should be around 0.03 to 0.05 V.
 
-### Sıcaklık koruması
+### Thermal protection
 
-| Durum | Açılma | Kapanma | Çıkış |
+| State | On | Off | Output |
 |---|---|---|---|
-| Fan | 35 C | 31 C | batarya fanı |
-| Alarm | 55 C | 52 C | buzzer-flaşör, uyarı LED'leri yanıp söner, telefona uyarı bayrağı |
+| Fan | 35 °C | 31 °C | battery fan |
+| Alarm | 55 °C | 52 °C | buzzer-flasher, warning LEDs blink, alarm flag sent to the phone |
 
-Açılma ve kapanma sıcaklıkları arasındaki fark rölenin eşikte titremesini önlüyor.
+The gap between the on and off temperatures keeps the relay from chattering at the threshold.
 
-### Servolar
+### Servos
 
-TIM1 dört kanaldan 50 Hz PWM üretiyor. Darbe 1000 µs iken kapı kapalı, 1500 µs iken açık.
+TIM1 generates 50 Hz PWM on four channels. A 1000 µs pulse is door closed, 1500 µs is door open.
 
-## Eksikler
+## Limitations
 
-Bu yazılım izleme, dengeleme ve sıcaklık korumasını yapıyor ama tam bir koruma devresinin yerini tutmaz:
+This firmware monitors, balances and protects against heat, but it does not replace a full protection circuit:
 
-- Hücre aşırı şarj ve aşırı deşarj kesmesi yok.
-- Aşırı akım ve kısa devre koruması yok.
-- Şarj çıkışı sadece telefondan gelen komutla açılıp kapanıyor.
+- No cell over-charge or over-discharge cutoff.
+- No over-current or short-circuit protection.
+- The charge output is switched only by a command from the phone.
 
-Li-ion paketle çalışırken pakette bağımsız bir donanım koruma devresi mutlaka bulunsun.
+When you work with a Li-ion pack, keep an independent hardware protection circuit on the pack.
 
-## Derleme
+## Build
 
-STM32CubeIDE'de `File > Import > Existing Projects into Workspace` ile klasörü seç. Saat harici kristalden 168 MHz.
+In STM32CubeIDE use `File > Import > Existing Projects into Workspace` and select this folder. The clock is 168 MHz from the external crystal.
 
-## Lisans
+## License
 
-Yazılım MIT lisanslı. `Drivers` klasöründeki STM32 HAL ve CMSIS dosyaları kendi lisanslarıyla gelir. `docs` klasöründeki şema ve kart görselleri bilgi amaçlıdır.
+The firmware is MIT licensed. The STM32 HAL and CMSIS files under `Drivers` keep their own licenses. The schematic and board images under `docs` are provided for reference.
 
-## Yazar
+## Author
 
-Gömülü Sistem Mühendisi M. Eyüb Can, [TECH-OHM](https://tech-ohm.com) kurucusu
+M. Eyüb Can, embedded systems engineer and founder of [TECH-OHM](https://tech-ohm.com)
 
-## TECH-OHM
+## About TECH-OHM
 
-[TECH-OHM](https://tech-ohm.com) elektronik kart ve gömülü yazılım tasarlayan bir mühendislik firması. Fikirden seri üretime kadar tasarım işi alıyor, TECH-OHM Akademi'de 12 aylık gömülü sistem eğitimi ve şirketlere özel danışmanlık veriyor.
+[TECH-OHM](https://tech-ohm.com) designs electronic boards and embedded software, from the first schematic to series production. We also run a 12-month embedded systems training program and consult for engineering teams.
 
-Web: [tech-ohm.com](https://tech-ohm.com) · E-posta: info@tech-ohm.com
+Web: [tech-ohm.com](https://tech-ohm.com) · Email: info@tech-ohm.com
