@@ -1,3 +1,6 @@
 * text=auto
 *.a binary
 *.tflite binary
+*.pdf binary
+*.jpg binary
+*.png binary
