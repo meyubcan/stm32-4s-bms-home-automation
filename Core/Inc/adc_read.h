@@ -2,9 +2,9 @@
  ******************************************************************************
  * @file    adc_read.h
  * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
- * @brief   ADC + DMA okuma, 10 ornek digital filtre (ortalama),
- *          VREFINT kalibrasyonu ile gercek VDDA, pil/sicaklik/akim hesabi.
- *          STM32F407VG - 4S pil + 2x LM35DZ + 1x ACS712-20A
+ * @brief   ADC sampling with DMA, 10-sample digital filter (average),
+ *          real VDDA from VREFINT calibration, cell voltage, temperature and current.
+ *          STM32F407VG, 4S pack, 2x LM35DZ, 1x ACS712-20A
  ******************************************************************************
  */
 
@@ -18,33 +18,33 @@ extern "C" {
 #include "main.h"
 #include <stdint.h>
 
-/* ============================ AYARLAR ============================ */
+/* ============================ SETTINGS ============================ */
 
-/* Toplam kanal sayisi (7 sensor + 1 dahili VREFINT) */
+/* Total channel count (7 sensors + internal VREFINT) */
 #define ADC_CH_COUNT     8
 
-/* Digital filtre: kac ornegin ortalamasi alinacak */
+/* Digital filter: how many samples are averaged */
 #define ADC_OVERSAMPLE   10
 
-/* VREFIN_CAL adresi (STM32F407, 3.3V'ta fabrika kalibrasyonu) */
+/* VREFINT_CAL address (STM32F407, factory calibration at 3.3 V) */
 #define VREFINT_CAL      ((uint16_t*)0x1FFF7A2AU)
 
-/* ---- PIL KAPASITESI (tahmini kalan sure icin) ----
- * Pak: 4S10P, hucre 2500mAh.
- * 10 paralel -> kapasite = 10 * 2500mAh = 25000mAh = 25.0 Ah
- * (seri Ah'i degistirmez, sadece gerilimi artirir)
+/* ---- PACK CAPACITY (for the remaining-time estimate) ----
+ * Pack: 4S10P, 2500 mAh cells.
+ * 10 in parallel -> capacity = 10 * 2500 mAh = 25000 mAh = 25.0 Ah
+ * (series cells raise the voltage, not the Ah)
  */
 #define BATT_CAPACITY_AH     25.0f
 
-/* Bu akimin altinda "kalan sure belirsiz" kabul edilir (idle) */
+/* Below this current the remaining time is treated as unknown (idle) */
 #define RUNTIME_MIN_CURRENT  0.05f
 
-/* Karta ozel ince ayar. 1.0 = duzeltme yok */
+/* Per-board trim factor. 1.0 = no correction */
 #define VDDA_CORR        1.000f
 
-/* ---- PIL GERILIM BOLUCU ORANLARI ----
- * Her dugumun bolucusu, o dugumun dolu haldeki maks gerilimini 3.0V yapar.
- * DIV_BAT[i] = maks_gerilim / 3.0  (gercek dugum gerilimini geri almak icin)
+/* ---- CELL VOLTAGE DIVIDER RATIOS ----
+ * Each divider brings the full-charge voltage of its node down to 3.0 V.
+ * DIV_BAT[i] = max_voltage / 3.0  (used to get the real node voltage back)
  *   node1: 4.2V  -> 3.0V  => 1.4
  *   node2: 8.4V  -> 3.0V  => 2.8
  *   node3: 12.6V -> 3.0V  => 4.2
@@ -53,48 +53,48 @@ extern "C" {
 extern const float DIV_BAT[4];
 
 /* ---- ACS712-20A ---- */
-#define ACS_SENS         0.100f   /* 20A versiyon: 100 mV/A */
-#define ACS_ZERO_V_DEF   2.520f   /* olculen sifir noktasi (bol. yok, dogrudan) */
-#define DIV_ACS          1.000f   /* bolucu YOK -> 1.0 (sensor pine dogrudan) */
-/* Akim ek yumusatma katsayisi (EMA). Kucuk = daha yumusak/yavas.
- * 0.10 hafif, 0.05 orta, 0.02 cok yumusak */
+#define ACS_SENS         0.100f   /* 20 A version: 100 mV/A */
+#define ACS_ZERO_V_DEF   2.520f   /* measured zero point (no divider, direct) */
+#define DIV_ACS          1.000f   /* no divider -> 1.0 (sensor goes straight to the pin) */
+/* Extra smoothing factor for current (EMA). Smaller = smoother and slower.
+ * 0.10 light, 0.05 medium, 0.02 heavy */
 #define CURRENT_EMA_ALPHA  0.05f
-/* calisma aninda kalibre edilen sifir noktasi (default = ACS_ZERO_V_DEF) */
+/* zero point calibrated at run time (default = ACS_ZERO_V_DEF) */
 extern volatile float acs_zero_v;
 
-/* ============================ KANAL INDEKSLERI ============================ */
+/* ============================ CHANNEL INDEXES ============================ */
 enum {
     CH_BAT1 = 0, CH_BAT2, CH_BAT3, CH_BAT4,
     CH_TEMP1, CH_TEMP2, CH_CURRENT, CH_VREF
 };
 
-/* ============================ DISARI ACILAN DEGERLER ============================ */
-extern volatile uint16_t adc_filt[ADC_CH_COUNT]; /* filtrelenmis ham deger */
-extern volatile float    vdda;                   /* gercek besleme gerilimi (V) */
-extern volatile float    node_v[4];              /* HAM dugum gerilimleri (kalibrasyon icin) */
-extern volatile float    cell_v[4];              /* hucre gerilimleri (V, 1 ondalik) */
-extern volatile float    cell_v_raw[4];          /* HAM hucre gerilimleri (dengeleme icin) */
-extern volatile float    pack_v;                 /* toplam pak gerilimi (V, 1 ondalik) */
-extern volatile int16_t  temp_c[2];              /* LM35DZ sicakliklari (C, tam sayi) */
-extern volatile float    current_a;              /* ACS712 akimi (A, negatif olmaz) */
-extern volatile uint8_t  soc_pct;                /* sarj durumu (%) */
-extern volatile uint8_t  adc_ready;              /* ilk gecerli okuma yapildi mi */
-extern volatile float    power_w;                /* anlik guc (W) = pack_v * current_a */
-extern volatile float    energy_wh;              /* toplam tuketilen enerji (Wh) */
-extern volatile float    remaining_h;            /* tahmini kalan sure (saat). <0 = belirsiz */
+/* ============================ PUBLISHED VALUES ============================ */
+extern volatile uint16_t adc_filt[ADC_CH_COUNT]; /* filtered raw value */
+extern volatile float    vdda;                   /* real supply voltage (V) */
+extern volatile float    node_v[4];              /* RAW node voltages (for calibration) */
+extern volatile float    cell_v[4];              /* cell voltages (V, one decimal) */
+extern volatile float    cell_v_raw[4];          /* RAW cell voltages (for balancing) */
+extern volatile float    pack_v;                 /* pack voltage (V, one decimal) */
+extern volatile int16_t  temp_c[2];              /* LM35DZ temperatures (C, integer) */
+extern volatile float    current_a;              /* ACS712 current (A, never negative) */
+extern volatile uint8_t  soc_pct;                /* state of charge (%) */
+extern volatile uint8_t  adc_ready;              /* set after the first valid reading */
+extern volatile float    power_w;                /* instantaneous power (W) = pack_v * current_a */
+extern volatile float    energy_wh;              /* total consumed energy (Wh) */
+extern volatile float    remaining_h;            /* remaining time estimate (hours). <0 = unknown */
 
-/* ============================ FONKSIYONLAR ============================ */
+/* ============================ FUNCTIONS ============================ */
 
-/* main.c USER CODE 2 icinde bir kez cagir */
+/* Call once from USER CODE 2 in main.c */
 void ADC_Filter_Start(ADC_HandleTypeDef *hadc);
 
-/* Akim SIFIRKEN cagir: o anki ACS cikisini sifir noktasi olarak kaydeder */
+/* Call with ZERO current: stores the present sensor output as the zero point */
 void ADC_CalibrateACSZero(void);
 
-/* Enerji entegrasyonu: ana donguden SIK SIK cagir (dt'yi kendi olcer) */
+/* Energy integration: call OFTEN from the main loop (it measures dt itself) */
 void Energy_Update(void);
 
-/* Toplam enerji sayacini sifirla (app'ten "reset" komutu icin) */
+/* Clear the energy counter (for the "reset" command from the app) */
 void Energy_Reset(void);
 
 #ifdef __cplusplus

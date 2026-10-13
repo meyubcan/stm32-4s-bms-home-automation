@@ -2,16 +2,16 @@
  ******************************************************************************
  * @file    protection.c
  * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
- * @brief   Batarya sicaklik koruma mantigi (fan / buzzer / led).
+ * @brief   Battery thermal protection logic (fan / buzzer / LEDs).
  ******************************************************************************
  */
 
 #include "protection.h"
-#include "adc_read.h"   /* temp_c[] buradan gelir */
+#include "adc_read.h"   /* temp_c[] comes from here */
 
-/* ---- Cikis pinleri ---- */
+/* ---- Output pins ---- */
 #define FAN_PORT     GPIOD
-#define FAN_PIN      GPIO_PIN_14   /* batarya fani */
+#define FAN_PIN      GPIO_PIN_14   /* battery fan */
 #define BUZZER_PORT  GPIOD
 #define BUZZER_PIN   GPIO_PIN_15   /* buzzer */
 #define LED1_PORT    GPIOD
@@ -34,20 +34,20 @@ static void pin_write(GPIO_TypeDef *port, uint16_t pin, uint8_t on)
 
 void Thermal_Update(void)
 {
-    int16_t t = temp_c[BATT_TEMP_IDX];   /* tam sayi sicaklik */
+    int16_t t = temp_c[BATT_TEMP_IDX];   /* temperature as an integer */
 
-    /* ---------- FAN: 35 ustu AC, 31 ve alti KAPAT (4C histerezis) ---------- */
+    /* ---------- FAN: ON at 35 and above, OFF at 31 and below (4 C hysteresis) ---------- */
     if (t >= FAN_ON_TEMP)       fan_state = 1;
     else if (t <= FAN_OFF_TEMP) fan_state = 0;
     pin_write(FAN_PORT, FAN_PIN, fan_state);
 
-    /* ---------- ALARM: 55 ustu AC, 52 ve alti KAPAT (3C histerezis) ---------- */
+    /* ---------- ALARM: ON at 55 and above, OFF at 52 and below (3 C hysteresis) ---------- */
     if (t >= ALARM_ON_TEMP)       alarm_state = 1;
     else if (t <= ALARM_OFF_TEMP) alarm_state = 0;
-    temp_alarm = alarm_state;     /* app bunu okuyup uyari verecek */
+    temp_alarm = alarm_state;     /* the app reads this and shows a warning */
 
     if (alarm_state) {
-        /* buzzer surekli, ledler yanip soner */
+        /* buzzer on continuously, LEDs blink */
         pin_write(BUZZER_PORT, BUZZER_PIN, 1);
 
         static uint32_t last_blink = 0;
@@ -60,7 +60,7 @@ void Thermal_Update(void)
         pin_write(LED1_PORT, LED1_PIN, blink);
         pin_write(LED2_PORT, LED2_PIN, blink);
     } else {
-        /* alarm yok: buzzer + ledler kapali (fan kendi histereziyle devam) */
+        /* no alarm: buzzer and LEDs off (the fan follows its own hysteresis) */
         pin_write(BUZZER_PORT, BUZZER_PIN, 0);
         pin_write(LED1_PORT, LED1_PIN, 0);
         pin_write(LED2_PORT, LED2_PIN, 0);

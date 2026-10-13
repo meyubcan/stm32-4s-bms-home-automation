@@ -68,19 +68,19 @@ static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-/* App'ten kontrol edilecek cikislar. Batarya fani (PD14), buzzer (PD15) ve
- * kullanici LED'leri (PD5/PD6) burada yok, onlari Thermal_Update yonetir. */
+/* Outputs controlled from the app. The battery fan (PD14), buzzer (PD15) and
+ * user LEDs (PD5/PD6) are not here. Thermal_Update handles those. */
 RelayCh relays[] = {
     { GPIOD, GPIO_PIN_8,  "HOME_FAN_2"    },
-    { GPIOD, GPIO_PIN_9,  "HOME_TYPEC_5V" },  /* USB priz */
+    { GPIOD, GPIO_PIN_9,  "HOME_TYPEC_5V" },  /* USB socket */
     { GPIOD, GPIO_PIN_10, "HOME_FAN_1"    },
     { GPIOD, GPIO_PIN_11, "HOME_LED_2"    },
     { GPIOD, GPIO_PIN_12, "HOME_LED_1"    },
-    { GPIOB, GPIO_PIN_0,  "SARJ"          },
-    { GPIOB, GPIO_PIN_9,  "BALANS_1"      },
-    { GPIOB, GPIO_PIN_8,  "BALANS_2"      },
-    { GPIOB, GPIO_PIN_7,  "BALANS_3"      },
-    { GPIOB, GPIO_PIN_6,  "BALANS_4"      },
+    { GPIOB, GPIO_PIN_0,  "CHARGE"          },
+    { GPIOB, GPIO_PIN_9,  "BALANCE_1"      },
+    { GPIOB, GPIO_PIN_8,  "BALANCE_2"      },
+    { GPIOB, GPIO_PIN_7,  "BALANCE_3"      },
+    { GPIOB, GPIO_PIN_6,  "BALANCE_4"      },
 };
 #define RELAY_COUNT (sizeof(relays) / sizeof(relays[0]))
 
@@ -177,7 +177,7 @@ int main(void)
   servo_start_all();
   ADC_Filter_Start(&hadc1);
   HAL_Delay(100);
-  ADC_CalibrateACSZero();        /* akim sifirken (yuk yokken) kalibre et */
+  ADC_CalibrateACSZero();        /* calibrate at zero current (no load) */
 
   BT_Init(&huart1);
   /* USER CODE END 2 */
@@ -193,7 +193,7 @@ int main(void)
 	  Thermal_Update();
 	  Balance_Update();
 
-	     /* Bluetooth: 500ms'de bir telemetri gonder */
+	     /* Bluetooth: send telemetry every 500 ms */
 	     static uint32_t last_tx = 0;
 	     if (HAL_GetTick() - last_tx >= 500) {
 	         last_tx = HAL_GetTick();

@@ -2,10 +2,10 @@
  ******************************************************************************
  * @file    protection.h
  * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
- * @brief   Batarya sicaklik korumasi:
+ * @brief   Battery thermal protection:
  *            >35C  -> fan (PD14)
- *            >55C  -> buzzer (PD15) + user led 1&2 (PD5/PD6) yanip soner
- *          Genis histerezis ile (role titremesini onler), app uyari bayragi.
+ *            >55C  -> buzzer (PD15), user LED 1 and 2 (PD5/PD6) blink
+ *          Wide hysteresis keeps the relay from chattering. Sets an alarm flag for the app.
  ******************************************************************************
  */
 
@@ -19,32 +19,32 @@ extern "C" {
 #include "main.h"
 #include <stdint.h>
 
-/* Hangi LM35 batarya sicakligi? (0 = temp_c[0], 1 = temp_c[1]) */
+/* Which LM35 is the battery temperature? (0 = temp_c[0], 1 = temp_c[1]) */
 #define BATT_TEMP_IDX     0
 
-/* Esik degerleri (C).
- * ON'da acilir, OFF'a DUSENE KADAR kapanmaz -> genis histerezis,
- * esikte role titremesini (ac/kapa) tamamen onler.
- *   FAN  : 35'te ac, 31'e dusunce kapat  (4C bosluk)
- *   ALARM: 55'te ac, 52'ye dusunce kapat (3C bosluk)
+/* Thresholds (C).
+ * Turns on at ON and stays on until the temperature falls to OFF. The wide gap
+ * keeps the relay from switching on and off at the threshold.
+ *   FAN  : on at 35, off at 31  (4 C gap)
+ *   ALARM: on at 55, off at 52  (3 C gap)
  */
 #define FAN_ON_TEMP       35
 #define FAN_OFF_TEMP      31
 #define ALARM_ON_TEMP     55
 #define ALARM_OFF_TEMP    52
 
-/* LED yanip-sonme periyodu (ms) */
+/* LED blink period (ms) */
 #define BLINK_PERIOD_MS   300
 
-/* Cikislar LOW ile tetikleniyorsa 1 yap */
+/* Set to 1 if the outputs are active low */
 #define OUT_ACTIVE_LOW    0
 
-/* ---- Disari acilan durumlar ---- */
-extern volatile uint8_t temp_alarm;   /* 1 = sicaklik 55'i gecti (app uyarisi) */
-extern volatile uint8_t fan_state;    /* fan acik mi */
-extern volatile uint8_t alarm_state;  /* alarm aktif mi */
+/* ---- Published state ---- */
+extern volatile uint8_t temp_alarm;   /* 1 = temperature passed 55 (app warning) */
+extern volatile uint8_t fan_state;    /* fan is on */
+extern volatile uint8_t alarm_state;  /* alarm is active */
 
-/* Ana donguden SIK SIK cagir (sicakligi okur, cikislari yonetir) */
+/* Call OFTEN from the main loop (reads the temperature, drives the outputs) */
 void Thermal_Update(void);
 
 #ifdef __cplusplus

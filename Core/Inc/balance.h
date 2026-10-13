@@ -2,10 +2,10 @@
  ******************************************************************************
  * @file    balance.h
  * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
- * @brief   Pasif hucre dengeleme.
- *          Ortalama hucre gerilimi bulunur; ortalamanin BALANCE_THRESHOLD
- *          uzerindeki hucrelerin balans FET'i %50 duty ile acilir (yan-son).
- *          Boylece fazla dolu hucreler bosaltilip dengeye getirilir.
+ * @brief   Passive cell balancing.
+ *          The average cell voltage is computed. Cells that sit above it by
+ *          BALANCE_THRESHOLD get their balancing switch driven at 50% duty.
+ *          That discharges the fuller cells toward the others.
  ******************************************************************************
  */
 
@@ -19,21 +19,21 @@ extern "C" {
 #include "main.h"
 #include <stdint.h>
 
-/* Ortalamanin bu kadar UZERINDEKI hucre dengelenir (V).
- * NOT: 0.5 V test icin secildi. Gercek kullanimda 0.03-0.05 V civarina cekilmeli. */
+/* A cell this far ABOVE the average gets balanced (V).
+ * NOTE: 0.5 V was chosen for testing. Real use needs about 0.03-0.05 V. */
 #define BALANCE_THRESHOLD   0.5f
 
-/* %50 duty (yan-son). Periyot ve oran. */
-#define BALANCE_PERIOD_MS   2000   /* 2 sn periyot */
-#define BALANCE_DUTY_PCT    50     /* %50 -> 1 sn acik, 1 sn kapali */
+/* 50% duty. Period and ratio. */
+#define BALANCE_PERIOD_MS   2000   /* 2 s period */
+#define BALANCE_DUTY_PCT    50     /* 50% -> 1 s on, 1 s off */
 
-/* Balans cikislari LOW ile tetikleniyorsa 1 yap */
+/* Set to 1 if the balancing outputs are active low */
 #define BAL_ACTIVE_LOW      0
 
-/* Hangi hucre su an dengeleniyor (durum izleme / app) */
+/* Which cells are being balanced right now (for status and the app) */
 extern volatile uint8_t balance_active[4];
 
-/* Ana donguden SIK SIK cagir */
+/* Call OFTEN from the main loop */
 void Balance_Update(void);
 
 #ifdef __cplusplus

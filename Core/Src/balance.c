@@ -2,18 +2,18 @@
  ******************************************************************************
  * @file    balance.c
  * @author  M. Eyub Can, TECH-OHM (https://tech-ohm.com)
- * @brief   Pasif hucre dengeleme mantigi (%50 duty).
+ * @brief   Passive cell balancing logic (50% duty).
  ******************************************************************************
  */
 
 #include "balance.h"
 #include "adc_read.h"   /* cell_v_raw[] */
 
-/* Balans pinleri (port B). Index, cell_v_raw[] ile ayni sirada:
- *   cell 0 -> BALANS_1 (PB9)
- *   cell 1 -> BALANS_2 (PB8)
- *   cell 2 -> BALANS_3 (PB7)
- *   cell 3 -> BALANS_4 (PB6)
+/* Balancing pins (port B), in the same order as cell_v_raw[]:
+ *   cell 0 -> BALANCE_1 (PB9)
+ *   cell 1 -> BALANCE_2 (PB8)
+ *   cell 2 -> BALANCE_3 (PB7)
+ *   cell 3 -> BALANCE_4 (PB6)
  */
 static const uint16_t bal_pin[4] = {
     GPIO_PIN_9,   /* cell 0 */
@@ -35,16 +35,16 @@ static void bal_write(uint16_t pin, uint8_t on)
 
 void Balance_Update(void)
 {
-    /* 1) ortalama hucre gerilimi (hassas, yuvarlanmamis) */
+    /* 1) average cell voltage (precise, not rounded) */
     float avg = (cell_v_raw[0] + cell_v_raw[1] +
                  cell_v_raw[2] + cell_v_raw[3]) / 4.0f;
 
-    /* 2) %50 duty fazi: periyodun ilk yarisinda ON */
+    /* 2) 50% duty phase: ON during the first half of the period */
     uint32_t now = HAL_GetTick();
     uint8_t duty_on = ((now % BALANCE_PERIOD_MS) <
                        (BALANCE_PERIOD_MS * BALANCE_DUTY_PCT / 100));
 
-    /* 3) ortalamanin esikten fazla uzerindeki hucreyi %50 duty ile dengele */
+    /* 3) balance any cell that is above the average by more than the threshold */
     for (int i = 0; i < 4; i++) {
         uint8_t qualifies = (cell_v_raw[i] > (avg + BALANCE_THRESHOLD));
         balance_active[i] = qualifies;
