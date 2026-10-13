@@ -37,7 +37,11 @@ flowchart LR
 
 ## Telefon uygulaması
 
-Uygulamanın iki ekranı var: batarya ve ev otomasyonu. Bluetooth hattında iki şey oluyor.
+Android uygulaması [app/SmartBMSEnergy.apk](app/SmartBMSEnergy.apk) dosyasında. MIT App Inventor ile yaptım. İki ekranı var: batarya ve ev otomasyonu.
+
+Denemek için APK'yı kur, HC-06 modülünü telefonun Bluetooth ayarlarından eşleştir, uygulamayı aç, `BLUETOOTH CİHAZ ARA` düğmesine basıp modülü seç.
+
+Bluetooth hattında iki şey oluyor.
 
 ```mermaid
 flowchart LR
@@ -90,8 +94,11 @@ Kalan dakika -1 ise akım çok düşük, süre hesaplanamıyor demek.
 
 Şemanın tamamı: [docs/schematic.pdf](docs/schematic.pdf)
 
+Malzeme listesi: [docs/bom.csv](docs/bom.csv), 63 satır ve 207 parça.
+
 | Sayfa | İçerik | Önizleme |
 |---|---|---|
+| 1 | Güç katı: giriş, 12 V, 5 V ve 3.3 V regülatörler, telefon şarj hattı | [aç](docs/img/schematic-1-power.png) |
 | 2 | Mikrodenetleyici, kristal, programlama başlığı, butonlar | [aç](docs/img/schematic-2-mcu.png) |
 | 3 | Hücre gerilimi okuma | [aç](docs/img/schematic-3-cell-voltage.png) |
 | 4 | Pasif dengeleme | [aç](docs/img/schematic-4-balancing.png) |
@@ -105,13 +112,17 @@ Kalan dakika -1 ise akım çok düşük, süre hesaplanamıyor demek.
 flowchart LR
     BAT[4S paket, 12 ile 16.8 V] --> R16[16.8 V hattı]
     R16 --> L16[Batarya fanı, buzzer-flaşör]
-    R16 --> R12[12 V hattı]
-    R16 --> R5[5 V hattı]
+    R16 -- "LM2596-12, 3 A" --> R12[12 V hattı]
+    R16 -- "XL4016, 6 A" --> RC[5 V şarj hattı]
     R12 --> L12[Ev aydınlatması]
-    R5 --> L5[Ev fanları, servolar, USB Type-C, Bluetooth]
-    R5 --> R3[3.3 V hattı]
+    R12 -- "LM2596-5, 3 A" --> R5[5 V hattı]
+    RC --> LC[USB Type-C, telefon şarjı]
+    R5 --> L5[Ev fanları, servolar, Bluetooth, akım sensörü]
+    R5 -- "LD1117" --> R3[3.3 V hattı]
     R3 --> L3[İşlemci ve opamplar]
 ```
+
+Telefon şarj çıkışının 30 W'lık kendi dönüştürücüsü var. Böylece şarj olan telefon, işlemciyi ve sensörleri besleyen hattı yüklemiyor.
 
 ### Hücre gerilimi okuma
 
@@ -137,7 +148,7 @@ Anahtarlamalı direnç yöntemi. Her hücrenin üzerinde bir güç direnci ve on
 
 ```mermaid
 flowchart LR
-    P[İşlemci pini] --> OK[PC817 optokuplör] --> T[FZT851 transistör] --> R[22 Ω güç direnci, hücreye paralel]
+    P[İşlemci pini] --> OK[PC817 optokuplör] --> T[FZT851 transistör] --> R[23 Ω güç direnci, hücreye paralel]
     P --> LED[Gösterge LED'i]
 ```
 
@@ -147,19 +158,19 @@ Yedi röle de aynı devreyle sürülüyor. İşlemci pini optokuplörü ve göst
 
 ```mermaid
 flowchart LR
-    P[İşlemci pini] --> OK[PC817 optokuplör ve LED] --> T[BCX54 transistör] --> K[ALDP112W röle, 1N4002 ile] --> Y[Yük]
+    P[İşlemci pini] --> OK[PC817 optokuplör ve LED] --> T[BCX54 transistör] --> K[ALDP112W röle, 1N4003 ile] --> Y[Yük]
 ```
 
 ### Diğerleri
 
-- **Akım:** hall etkili sensörün çıkışı tamponlanıp filtreden geçerek ADC'ye gidiyor.
+- **Akım:** ACS712-20A hall etkili sensör modülü karttaki konnektöre takılıyor. Çıkışı tamponlanıp filtreden geçerek ADC'ye gidiyor.
 - **Sıcaklık:** kartta dört sensör girişi var, her birinde 1 kΩ ve 100 nF filtre. Yazılım ikisini kullanıyor: batarya ve ev.
 - **Bluetooth:** HC-06 modülü 5 V'tan besleniyor, 9600 baud.
 - **İşlemci:** STM32F407VGT6, 8 MHz kristal, ST-LINK başlığı, reset ve kullanıcı butonu, iki kullanıcı LED'i.
 
 ### Şema ile yazılım arasındaki farklar
 
-Depodaki şema kartın ilk çizimi. Güç katının olduğu birinci sayfa eksik. Mikrodenetleyici sayfasında ev çıkışları, servolar, Bluetooth ve akım girişi görünmüyor, sıcaklık girişleri de farklı pinlerde. Akım sensörü şemada LEM CASR 25-NP olarak çizili, yazılım ise 100 mV/A veren bir sensöre (ACS712-20A) göre ayarlı.
+Birinci sayfa güç katının güncel hali. 2 ile 7 arasındaki sayfalar çizimin daha eski bir çıktısından. O sayfalarda mikrodenetleyici tarafında ev çıkışları, servolar, Bluetooth ve akım girişi görünmüyor, sıcaklık girişleri de farklı pinlerde. Beşinci sayfada akım sensörü hâlâ LEM CASR 25-NP olarak çizili. Kartta ACS712-20A modülü kullanılıyor, yazılım da ona göre ayarlı.
 
 Güncel pin atamaları aşağıdaki tabloda ve `.ioc` dosyasında.
 

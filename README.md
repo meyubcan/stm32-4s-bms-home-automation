@@ -19,6 +19,7 @@ On the battery side it measures cell voltages, current and temperature on a 4S L
 - Passive cell balancing, about 200 mA per cell
 - Thermal protection: fan at 35 °C, buzzer and flasher at 55 °C
 - Seven opto-isolated relay outputs and four servo channels
+- A separate 5 V, 6 A rail for phone charging over USB Type-C
 - Live telemetry and control from an Android app over Bluetooth
 
 ## System overview
@@ -46,7 +47,11 @@ flowchart LR
 
 ## Phone app
 
-The app has two screens: battery and home automation. Two things happen over the Bluetooth link.
+The Android app is in [app/SmartBMSEnergy.apk](app/SmartBMSEnergy.apk). I built it with MIT App Inventor, and its interface is in Turkish. It has two screens: battery and home automation.
+
+To try it, install the APK, pair the HC-06 module in the phone's Bluetooth settings, open the app, tap `BLUETOOTH CİHAZ ARA` and pick the module.
+
+Two things happen over the Bluetooth link.
 
 ```mermaid
 flowchart LR
@@ -106,8 +111,11 @@ One comma-separated line every half second:
 
 Full schematic: [docs/schematic.pdf](docs/schematic.pdf)
 
+Bill of materials: [docs/bom.csv](docs/bom.csv), 63 lines and 207 parts.
+
 | Sheet | Content | Preview |
 |---|---|---|
+| 1 | Power stage: input, 12 V, 5 V and 3.3 V regulators, phone charging rail | [open](docs/img/schematic-1-power.png) |
 | 2 | Microcontroller, crystal, programming header, buttons | [open](docs/img/schematic-2-mcu.png) |
 | 3 | Cell voltage sensing | [open](docs/img/schematic-3-cell-voltage.png) |
 | 4 | Passive balancing | [open](docs/img/schematic-4-balancing.png) |
@@ -123,13 +131,17 @@ The schematic sheets are labeled in Turkish.
 flowchart LR
     BAT[4S pack, 12 to 16.8 V] --> R16[16.8 V rail]
     R16 --> L16[Battery fan, buzzer-flasher]
-    R16 --> R12[12 V rail]
-    R16 --> R5[5 V rail]
+    R16 -- "LM2596-12, 3 A" --> R12[12 V rail]
+    R16 -- "XL4016, 6 A" --> RC[5 V charging rail]
     R12 --> L12[Home lighting]
-    R5 --> L5[Home fans, servos, USB Type-C, Bluetooth]
-    R5 --> R3[3.3 V rail]
+    R12 -- "LM2596-5, 3 A" --> R5[5 V rail]
+    RC --> LC[USB Type-C, phone charging]
+    R5 --> L5[Home fans, servos, Bluetooth, current sensor]
+    R5 -- "LD1117" --> R3[3.3 V rail]
     R3 --> L3[MCU and op-amps]
 ```
+
+The phone charging port has its own 30 W converter, so a charging phone does not load the rail that feeds the MCU and the sensors.
 
 ### Cell voltage sensing
 
@@ -155,7 +167,7 @@ Switched-resistor method. Each cell has a power resistor across it and a transis
 
 ```mermaid
 flowchart LR
-    P[MCU pin] --> OK[PC817 optocoupler] --> T[FZT851 transistor] --> R[22 Ω power resistor across the cell]
+    P[MCU pin] --> OK[PC817 optocoupler] --> T[FZT851 transistor] --> R[23 Ω power resistor across the cell]
     P --> LED[Indicator LED]
 ```
 
@@ -165,19 +177,19 @@ All seven relays use the same circuit. The MCU pin drives an optocoupler and an 
 
 ```mermaid
 flowchart LR
-    P[MCU pin] --> OK[PC817 optocoupler and LED] --> T[BCX54 transistor] --> K[ALDP112W relay with 1N4002] --> Y[Load]
+    P[MCU pin] --> OK[PC817 optocoupler and LED] --> T[BCX54 transistor] --> K[ALDP112W relay with 1N4003] --> Y[Load]
 ```
 
 ### Other blocks
 
-- **Current:** the output of a hall-effect sensor is buffered and filtered before the ADC.
+- **Current:** an ACS712-20A hall-effect sensor module plugs into a connector on the board. Its output is buffered and filtered before the ADC.
 - **Temperature:** the board has four sensor inputs, each with a 1 kΩ and 100 nF filter. The firmware uses two: battery and room.
 - **Bluetooth:** HC-06 module on 5 V, 9600 baud.
 - **MCU:** STM32F407VGT6, 8 MHz crystal, ST-LINK header, reset and user buttons, two user LEDs.
 
 ### Differences between the schematic and the firmware
 
-The schematic in this repository is the first drawing of the board. Sheet 1, the power stage, is missing. The microcontroller sheet does not show the home outputs, servos, Bluetooth or the current input, and the temperature inputs are on different pins. The current sensor is drawn as a LEM CASR 25-NP, while the firmware is set up for a 100 mV/A sensor (ACS712-20A).
+Sheet 1 is the current power stage. Sheets 2 to 7 come from an earlier export of the drawing. On those, the microcontroller sheet does not show the home outputs, servos, Bluetooth or the current input, and the temperature inputs are on different pins. Sheet 5 still shows a LEM CASR 25-NP current sensor. The board uses an ACS712-20A module, which is what the firmware is set up for.
 
 The pin table below and the `.ioc` file are the current reference.
 
