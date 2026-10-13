@@ -6,7 +6,7 @@ STM32F407 · 4S Li-ion · passive balancing · Bluetooth app · custom PCB
 
 **English** | [Türkçe](README.tr.md) · An open-source project by [TECH-OHM](https://tech-ohm.com)
 
-![Board and phone app](docs/img/kart-ve-uygulama.jpg)
+![Board and phone app](docs/img/board-and-app.jpg)
 
 A custom board and its firmware for a small battery-powered home system. It manages the battery and switches the loads. I designed both the hardware and the software.
 
@@ -100,20 +100,20 @@ One comma-separated line every half second:
 
 | Top | Bottom |
 |---|---|
-| ![Board top](docs/img/kart-ust.jpg) | ![Board bottom](docs/img/kart-alt.jpg) |
+| ![Board top](docs/img/board-top.jpg) | ![Board bottom](docs/img/board-bottom.jpg) |
 
-![Assembled board](docs/img/kart-foto.jpg)
+![Assembled board](docs/img/board-assembled.jpg)
 
-Full schematic: [docs/bms-sema.pdf](docs/bms-sema.pdf)
+Full schematic: [docs/schematic.pdf](docs/schematic.pdf)
 
 | Sheet | Content | Preview |
 |---|---|---|
-| 2 | Microcontroller, crystal, programming header, buttons | [open](docs/img/sema-2-mikrodenetleyici.png) |
-| 3 | Cell voltage sensing | [open](docs/img/sema-3-gerilim-okuma.png) |
-| 4 | Passive balancing | [open](docs/img/sema-4-pasif-dengeleme.png) |
-| 5 | Current sensing, temperature inputs, Bluetooth | [open](docs/img/sema-5-akim-sicaklik-bluetooth.png) |
-| 6 | Home control: lighting, fan and Type-C relays | [open](docs/img/sema-6-ev-kontrolu.png) |
-| 7 | Battery fan and buzzer-flasher relays | [open](docs/img/sema-7-batarya-fan-buzzer.png) |
+| 2 | Microcontroller, crystal, programming header, buttons | [open](docs/img/schematic-2-mcu.png) |
+| 3 | Cell voltage sensing | [open](docs/img/schematic-3-cell-voltage.png) |
+| 4 | Passive balancing | [open](docs/img/schematic-4-balancing.png) |
+| 5 | Current sensing, temperature inputs, Bluetooth | [open](docs/img/schematic-5-current-temp-bluetooth.png) |
+| 6 | Home control: lighting, fan and Type-C relays | [open](docs/img/schematic-6-home-control.png) |
+| 7 | Battery fan and buzzer-flasher relays | [open](docs/img/schematic-7-fan-buzzer.png) |
 
 The schematic sheets are labeled in Turkish.
 

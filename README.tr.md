@@ -6,7 +6,7 @@ STM32F407 · 4S Li-ion · pasif dengeleme · Bluetooth uygulaması · özel tasa
 
 > [TECH-OHM](https://tech-ohm.com) açık kaynak projesi
 
-![Kart ve telefon uygulaması](docs/img/kart-ve-uygulama.jpg)
+![Kart ve telefon uygulaması](docs/img/board-and-app.jpg)
 
 Bataryadan beslenen küçük bir ev sisteminin hem bataryasını hem de çıkışlarını yöneten kart ve yazılımı. Kartı da yazılımı da ben tasarladım.
 
@@ -84,20 +84,20 @@ Kalan dakika -1 ise akım çok düşük, süre hesaplanamıyor demek.
 
 | Üst yüz | Alt yüz |
 |---|---|
-| ![Kart üst yüz](docs/img/kart-ust.jpg) | ![Kart alt yüz](docs/img/kart-alt.jpg) |
+| ![Kart üst yüz](docs/img/board-top.jpg) | ![Kart alt yüz](docs/img/board-bottom.jpg) |
 
-![Dizilmiş kart](docs/img/kart-foto.jpg)
+![Dizilmiş kart](docs/img/board-assembled.jpg)
 
-Şemanın tamamı: [docs/bms-sema.pdf](docs/bms-sema.pdf)
+Şemanın tamamı: [docs/schematic.pdf](docs/schematic.pdf)
 
 | Sayfa | İçerik | Önizleme |
 |---|---|---|
-| 2 | Mikrodenetleyici, kristal, programlama başlığı, butonlar | [aç](docs/img/sema-2-mikrodenetleyici.png) |
-| 3 | Hücre gerilimi okuma | [aç](docs/img/sema-3-gerilim-okuma.png) |
-| 4 | Pasif dengeleme | [aç](docs/img/sema-4-pasif-dengeleme.png) |
-| 5 | Akım okuma, sıcaklık girişleri, Bluetooth | [aç](docs/img/sema-5-akim-sicaklik-bluetooth.png) |
-| 6 | Ev kontrolü: aydınlatma, fan ve Type-C röleleri | [aç](docs/img/sema-6-ev-kontrolu.png) |
-| 7 | Batarya fanı ve buzzer-flaşör röleleri | [aç](docs/img/sema-7-batarya-fan-buzzer.png) |
+| 2 | Mikrodenetleyici, kristal, programlama başlığı, butonlar | [aç](docs/img/schematic-2-mcu.png) |
+| 3 | Hücre gerilimi okuma | [aç](docs/img/schematic-3-cell-voltage.png) |
+| 4 | Pasif dengeleme | [aç](docs/img/schematic-4-balancing.png) |
+| 5 | Akım okuma, sıcaklık girişleri, Bluetooth | [aç](docs/img/schematic-5-current-temp-bluetooth.png) |
+| 6 | Ev kontrolü: aydınlatma, fan ve Type-C röleleri | [aç](docs/img/schematic-6-home-control.png) |
+| 7 | Batarya fanı ve buzzer-flaşör röleleri | [aç](docs/img/schematic-7-fan-buzzer.png) |
 
 ### Güç dağıtımı
 
