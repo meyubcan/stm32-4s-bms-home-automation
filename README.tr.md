@@ -170,7 +170,7 @@ flowchart LR
 
 ### Şema ile yazılım arasındaki farklar
 
-Şema, yazılımdaki pin atamalarıyla bire bir aynı. Tek fark şu: şemada PB0 ve PB1 üçüncü ve dördüncü sıcaklık girişi. Yazılım sadece iki sıcaklık sensörü okuyor (PA6 ve PA7), PB0'ı da batarya şarj çıkışı olarak sürüyor.
+Şema, yazılımdaki pin atamalarıyla bire bir aynı. Tek fark şu: şemada PB0 ve PB1 üçüncü ve dördüncü sıcaklık girişi. Üretilen kartta PB0 batarya şarj rölesini sürüyor, yazılım da iki sıcaklık sensörü okuyor (PA6 ve PA7).
 
 Yazılım için referans aşağıdaki pin tablosu ve `.ioc` dosyası.
 

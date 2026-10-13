@@ -189,7 +189,7 @@ flowchart LR
 
 ### Differences between the schematic and the firmware
 
-The schematic matches the firmware pin for pin, with one exception. On the schematic PB0 and PB1 are the third and fourth temperature inputs. The firmware reads only two temperature sensors (PA6 and PA7) and drives PB0 as the battery charge output.
+The schematic matches the firmware pin for pin, with one exception. On the schematic PB0 and PB1 are the third and fourth temperature inputs. On the assembled board PB0 drives the battery charge relay, and the firmware reads two temperature sensors (PA6 and PA7).
 
 The pin table below and the `.ioc` file are the reference for the firmware.
 
