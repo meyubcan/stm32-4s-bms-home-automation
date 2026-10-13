@@ -102,7 +102,7 @@ Malzeme listesi: [docs/bom.csv](docs/bom.csv), 63 satır ve 207 parça.
 | 2 | Mikrodenetleyici, kristal, programlama başlığı, butonlar | [aç](docs/img/schematic-2-mcu.png) |
 | 3 | Hücre gerilimi okuma | [aç](docs/img/schematic-3-cell-voltage.png) |
 | 4 | Pasif dengeleme | [aç](docs/img/schematic-4-balancing.png) |
-| 5 | Akım okuma, sıcaklık girişleri, Bluetooth | [aç](docs/img/schematic-5-current-temp-bluetooth.png) |
+| 5 | Konnektörler, akım okuma, sıcaklık girişleri, Bluetooth | [aç](docs/img/schematic-5-current-temp-bluetooth.png) |
 | 6 | Ev kontrolü: aydınlatma, fan ve Type-C röleleri | [aç](docs/img/schematic-6-home-control.png) |
 | 7 | Batarya fanı ve buzzer-flaşör röleleri | [aç](docs/img/schematic-7-fan-buzzer.png) |
 
@@ -170,9 +170,9 @@ flowchart LR
 
 ### Şema ile yazılım arasındaki farklar
 
-Birinci sayfa güç katının güncel hali. 2 ile 7 arasındaki sayfalar çizimin daha eski bir çıktısından. O sayfalarda mikrodenetleyici tarafında ev çıkışları, servolar, Bluetooth ve akım girişi görünmüyor, sıcaklık girişleri de farklı pinlerde. Beşinci sayfada akım sensörü hâlâ LEM CASR 25-NP olarak çizili. Kartta ACS712-20A modülü kullanılıyor, yazılım da ona göre ayarlı.
+Şema, yazılımdaki pin atamalarıyla bire bir aynı. Tek fark şu: şemada PB0 ve PB1 üçüncü ve dördüncü sıcaklık girişi. Yazılım sadece iki sıcaklık sensörü okuyor (PA6 ve PA7), PB0'ı da batarya şarj çıkışı olarak sürüyor.
 
-Güncel pin atamaları aşağıdaki tabloda ve `.ioc` dosyasında.
+Yazılım için referans aşağıdaki pin tablosu ve `.ioc` dosyası.
 
 ## Yazılım
 

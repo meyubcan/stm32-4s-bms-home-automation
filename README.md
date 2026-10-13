@@ -119,7 +119,7 @@ Bill of materials: [docs/bom.csv](docs/bom.csv), 63 lines and 207 parts.
 | 2 | Microcontroller, crystal, programming header, buttons | [open](docs/img/schematic-2-mcu.png) |
 | 3 | Cell voltage sensing | [open](docs/img/schematic-3-cell-voltage.png) |
 | 4 | Passive balancing | [open](docs/img/schematic-4-balancing.png) |
-| 5 | Current sensing, temperature inputs, Bluetooth | [open](docs/img/schematic-5-current-temp-bluetooth.png) |
+| 5 | Connectors, current sensing, temperature inputs, Bluetooth | [open](docs/img/schematic-5-current-temp-bluetooth.png) |
 | 6 | Home control: lighting, fan and Type-C relays | [open](docs/img/schematic-6-home-control.png) |
 | 7 | Battery fan and buzzer-flasher relays | [open](docs/img/schematic-7-fan-buzzer.png) |
 
@@ -189,9 +189,9 @@ flowchart LR
 
 ### Differences between the schematic and the firmware
 
-Sheet 1 is the current power stage. Sheets 2 to 7 come from an earlier export of the drawing. On those, the microcontroller sheet does not show the home outputs, servos, Bluetooth or the current input, and the temperature inputs are on different pins. Sheet 5 still shows a LEM CASR 25-NP current sensor. The board uses an ACS712-20A module, which is what the firmware is set up for.
+The schematic matches the firmware pin for pin, with one exception. On the schematic PB0 and PB1 are the third and fourth temperature inputs. The firmware reads only two temperature sensors (PA6 and PA7) and drives PB0 as the battery charge output.
 
-The pin table below and the `.ioc` file are the current reference.
+The pin table below and the `.ioc` file are the reference for the firmware.
 
 ## Firmware
 
